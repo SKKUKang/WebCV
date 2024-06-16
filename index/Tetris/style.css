@@ -10,7 +10,7 @@ ul{
 body{
 	height: 100%;
 	overflow: hidden;
-  background-image: url(../../image/back.jpg);
+  background-image: url(/image/back.jpg);
   background-size: cover;
   background-attachment: fixed;
   align-items: center;

@@ -1,0 +1,132 @@
+img {
+    max-width: 100%; /* 이미지의 최대 너비를 화면의 너비로 설정 */
+    height: auto; /* 이미지의 높이를 자동으로 조정하여 가로세로 비율 유지 */
+    display: block; /* 이미지를 블록 요소로 설정하여 인라인 요소와의 간격을 없앰 */
+  }
+
+
+  
+
+  table, th, td { border: 1px solid black;
+background-color: rgb(237, 237, 237);
+}
+
+  body {
+    font-family: Arial, sans-serif;
+    margin-right: 20px;
+
+   
+       background-image: url(../../image/back.jpg);
+   background-size: cover;
+    color: #333;
+    display: flex;
+    background-attachment: fixed;
+}
+header {
+    background-color: rgb(24, 133, 68);
+    padding: 10px;
+    margin-right: 10px;
+    flex: 0 0 250px; /* navigation의 고정된 너비 */
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+nav ul li {
+    position: relative;
+    margin-bottom: 10px;
+}
+nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    padding: 10px;
+    display: block;
+    transition: background-color 0.3s ease;
+}
+nav ul li a:hover {
+    background-color: #59c37c;
+}
+nav ul ul {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 100%; /* 메뉴가 오른쪽으로 이동하도록 */
+    background-color: rgb(24, 133, 68);
+    padding: 0;
+    border-radius: 0 0 8px 8px;
+}
+nav ul ul li {
+    width: 200px;
+    border-bottom: 1px solid #fff;
+}
+nav ul ul li:last-child {
+    border-bottom: none;
+}
+nav ul li:hover > ul {
+    display: block;
+}
+main {
+    flex: 1; /* 내용이 차지할 공간을 남은 공간으로 설정 */
+    padding: 20px;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    grid-gap: 20px;
+    padding: 20px;
+    overflow: auto;
+    align-items: start;
+    border: 2px solid #000; /* 윤곽선 추가 */
+    border-radius: 8px; /* 윤곽선의 둥근 모서리를 추가할 수도 있습니다. */
+}
+
+@media screen and (max-width: 768px) {
+    header {
+        display: none;
+        /* 좁아졌을 때 네비게이션 최소 너비 변수 사용 */
+    }
+    .container {
+        grid-template-columns: 1fr; /* 한 개의 열로 변경 */
+    }
+    table {
+        width: 100%; /* 화면이 좁아질 경우 테이블의 너비를 100%로 설정하여 가로 스크롤이 나타나게 함 */
+    }
+}
+
+
+.quote {
+    font-style: italic;
+    color: #666;
+}
+
+head{
+    z-index: 1000;
+  }
+
+  .card-column {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 20px;
+    margin-left: 10px;
+    color: #000;
+    width: calc(50% - 20px); /* Adjusted width for two columns */
+    max-width: 100%;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+
+}
+
+pre {
+    background-color: #6f6e6e; /* 배경색 설정 */
+    padding: 10px; /* 내부 여백 설정 */
+    border-radius: 5px; /* 둥근 테두리 설정 */
+    overflow-x: auto; /* 가로 스크롤바 추가 */
+}
+
+code {
+    font-family: Consolas, Monaco, 'Andale Mono', monospace; /* 고정폭 글꼴 설정 */
+    color: #d2e0a9; /* 글자색 설정 */
+}

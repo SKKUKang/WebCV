@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux Project</title>
+    <link rel="stylesheet" href="style.css">
+    <a href="../index.html" style="position: fixed; top: 10px; left: 10px; width: 30px;">
+        <img src="../../image/home.png" alt="Home" style="width: 100%; height: auto; display: block;">
+    </a>
+    <style>
+
+    .container   {
+
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+    <div class="container">
+            <h2>RULE</h2>
+            <ol>
+                <li>Server 파일이 있는 곳으로 가서 ‘./server &lt;port&gt;’ 를 입력한다. Ex) ./server 1234</li>
+                <li>Client 파일이 있는 곳으로 가서 ‘./client &lt;ip&gt; &lt;port&gt;’ 를 입력한다. Ex) ./client 127.0.0.1 1234<br>(입력할 때 서버의 IP 번호와 port 번호를 일치시켜야 한다.)</li>
+                <li>제대로 연결되었다면 양쪽에서 보낸 hello 가 출력되고 프로그램이 게임이 시작된다.</li>
+                <li>클라이언트와 서버측 플레이어가 상대의 남은 점수를 가늠하여 0~ 현재 가지고 있는 포인트 값 사이의 값을 베팅한다.</li>
+                <li>베팅한 포인트는 각자 가진 포인트에서 차감되며, 이번 라운드에 누가 이겼는지 알려준다. 상대방의 포인트는 대략적으로만 알 수 있다.</li>
+                <li>최대 7회 반복해 더 많이 이긴쪽이 승리한다.</li>
+                <li>만약 라운드 이긴 횟수가 동률이라면 남은 포인트가 많은 쪽이 이긴다.</li>
+            </ol>
+        </div> 
+        <div class="container">
+            <h2>Screenshot</h2>
+            <img src="../../image/리눅스사진.png" alt="betting77">
+        </div>        
+        <div class="container">
+            <h2>Client code</h2>
+            <pre><code>
+                #include &#x3C;iostream&#x3E; 
+                #include &#x3C;string&#x3E;
+                #include &#x3C;cstring&#x3E;
+                #include &#x3C;cstdlib&#x3E;
+                #include &#x3C;unistd.h&#x3E;
+                #include &#x3C;sys/socket.h&#x3E;
+                #include &#x3C;netinet/in.h&#x3E;
+                #include &#x3C;arpa/inet.h&#x3E;
+                #include &#x3C;limits&#x3E; 
+                
+                #define BUF_SIZE 1024
+                
+                void error_handling(const std::string &#x26;message); // &#xC5D0;&#xB7EC; &#xBA54;&#xC2DC;&#xC9C0; &#xD638;&#xC774;&#xC2A4;&#xD305;
+                
+                int main(int argc, char *argv[]) {
+                    int sock; // &#xC18C;&#xCF13;
+                    struct sockaddr_in serv_addr; // &#xC11C;&#xBC84; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xAD6C;&#xC870;&#xCCB4;
+                    char message[BUF_SIZE]; // &#xBA54;&#xC2DC;&#xC9C0; &#xBC84;&#xD37C;
+                    int my_points = 77; // &#xB0B4; &#xD3EC;&#xC778;&#xD2B8;
+                    int opponent_points = 77; // &#xC0C1;&#xB300;&#xBC29; &#xD3EC;&#xC778;&#xD2B8;
+                    int mywin = 0; // &#xB0B4; &#xC2B9;&#xB9AC; &#xC218;
+                    int oppwin = 0; // &#xC0C1;&#xB300;&#xBC29; &#xC2B9;&#xB9AC; &#xC218;
+                    int rounds = 0; // &#xB77C;&#xC6B4;&#xB4DC; &#xC218;
+                    int myhistory[7];//&#xB0B4;&#xAC00; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;
+                    int opphistory[7];//&#xC0C1;&#xB300;&#xBC29;&#xC774; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;
+                
+                    if (argc != 3) {
+                        std::cout &#x3C;&#x3C; &#x22;Usage: &#x22; &#x3C;&#x3C; argv[0] &#x3C;&#x3C; &#x22; &#x3C;Server IP&#x3E; &#x3C;Server Port&#x3E;\n&#x22;; // &#xC0AC;&#xC6A9;&#xBC95; &#xCD9C;&#xB825; ip&#xC640; &#xD3EC;&#xD2B8; &#xBC88;&#xD638;&#xB97C; &#xC785;&#xB825;&#xD558;&#xC9C0; &#xC54A;&#xC740; &#xACBD;&#xC6B0;
+                        exit(1);
+                    }
+                
+                    sock = socket(AF_INET, SOCK_DGRAM, 0); // UDP &#xC18C;&#xCF13; &#xC0DD;&#xC131;
+                    if (sock == -1)
+                        error_handling(&#x22;UDP socket creation error&#x22;); // &#xC18C;&#xCF13; &#xC0DD;&#xC131; &#xC624;&#xB958; &#xCC98;&#xB9AC;
+                
+                    memset(&#x26;serv_addr, 0, sizeof(serv_addr)); // &#xC11C;&#xBC84; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xAD6C;&#xC870;&#xCCB4; &#xCD08;&#xAE30;&#xD654;
+                    serv_addr.sin_family = AF_INET; // IPv4 &#xC8FC;&#xC18C; &#xCCB4;&#xACC4; &#xC0AC;&#xC6A9;
+                    serv_addr.sin_addr.s_addr = inet_addr(argv[1]); // &#xC11C;&#xBC84; &#xC8FC;&#xC18C; &#xC124;&#xC815;
+                    serv_addr.sin_port = htons(std::stoi(argv[2])); // &#xD3EC;&#xD2B8; &#xBC88;&#xD638; &#xC124;&#xC815;
+                
+                    if (connect(sock, reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;serv_addr), sizeof(serv_addr)) == -1) //&#xC5F0;&#xACB0; &#xC694;&#xCCAD;
+                        error_handling(&#x22;connect() error&#x22;);
+                         // &#xC11C;&#xBC84;&#xC5D0; &#xC5F0;&#xACB0; &#xC624;&#xB958; &#xCC98;&#xB9AC;
+                    // &#xC11C;&#xBC84;&#xC5D0;&#xAC8C; &#x22;Hello&#x22; &#xBA54;&#xC2DC;&#xC9C0; &#xC804;&#xC1A1;
+                    if(sendto(sock, &#x22;hello&#x22;, strlen(&#x22;hello&#x22;), 0, reinterpret_cast&#x3C;const struct sockaddr*&#x3E;(&#x26;serv_addr), sizeof(serv_addr)) == -1)
+                        error_handling(&#x22;sendto() error&#x22;);
+                    std::cout &#x3C;&#x3C; &#x22;client: hello&#x22;&#x3C;&#x3C; std::endl;    
+                
+                    // &#xC11C;&#xBC84;&#xB85C;&#xBD80;&#xD130; &#xC751;&#xB2F5; &#xC218;&#xC2E0;
+                    // &#xC11C;&#xBC84;&#xB85C;&#xBD80;&#xD130; &#xBA54;&#xC2DC;&#xC9C0; &#xC218;&#xC2E0;
+                    char response[BUF_SIZE]; // &#xBC84;&#xD37C; &#xC0DD;&#xC131;
+                    socklen_t server_addr_len = sizeof(serv_addr); // &#xC11C;&#xBC84; &#xC8FC;&#xC18C; &#xAD6C;&#xC870;&#xCCB4; &#xD06C;&#xAE30;
+                    ssize_t recv_len = recvfrom(sock, response, sizeof(response), 0, reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;serv_addr), &#x26;server_addr_len); // &#xBA54;&#xC2DC;&#xC9C0; &#xC218;&#xC2E0;
+                    if (recv_len == -1)
+                        error_handling(&#x22;recvfrom() error&#x22;); // &#xC218;&#xC2E0; &#xC624;&#xB958; &#xCC98;&#xB9AC;
+                    response[recv_len] = &#x27;\0&#x27;; // &#xC218;&#xC2E0;&#xD55C; &#xBA54;&#xC2DC;&#xC9C0;&#xC5D0; null &#xBB38;&#xC790; &#xCD94;&#xAC00;
+                    std::cout &#x3C;&#x3C; &#x22;server: &#x22; &#x3C;&#x3C; response &#x3C;&#x3C; std::endl; // &#xC218;&#xC2E0;&#xD55C; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                    
+                    while (rounds &#x3C; 7) {
+                        if (connect(sock, reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;serv_addr), sizeof(serv_addr)) == -1) // &#xB3C4;&#xC911;&#xC5D0; &#xC5F0;&#xACB0; &#xC624;&#xB958;&#xAC00; &#xBC1C;&#xC0DD;&#xD55C; &#xACBD;&#xC6B0;
+                        error_handling(&#x22;connect() error&#x22;); // &#xC11C;&#xBC84;&#xC5D0; &#xC5F0;&#xACB0; &#xC624;&#xB958; &#xCC98;&#xB9AC;
+                
+                        
+                        // &#xD604;&#xC7AC; &#xB77C;&#xC6B4;&#xB4DC;&#xC640; &#xC0C1;&#xB300; &#xC810;&#xC218;&#xB294; &#xB300;&#xB7B5;&#xC801;&#xC73C;&#xB85C;&#xB9CC; &#xCD9C;&#xB825;
+                        std::cout &#x3C;&#x3C;&#x22;Round &#x22;&#x3C;&#x3C;rounds+1&#x3C;&#x3C;&#x22;Your points: &#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; &#x22;, Opponent&#x27;s points: &#x22; &#x3C;&#x3C; (opponent_points/13)*13 &#x3C;&#x3C;&#x22;~&#x22;&#x3C;&#x3C; (opponent_points/13)*13 + 12&#x3C;&#x3C; std::endl; // &#xB0B4; &#xD3EC;&#xC778;&#xD2B8;&#xC640; &#xC0C1;&#xB300;&#xBC29; &#xD3EC;&#xC778;&#xD2B8; &#xCD9C;&#xB825;
+                        int my_bid;
+                
+                        // &#xC0AC;&#xC6A9;&#xC790;&#xB85C;&#xBD80;&#xD130; &#xC720;&#xD6A8;&#xD55C; &#xD3EC;&#xC778;&#xD2B8; &#xC785;&#xB825; &#xBC1B;&#xAE30;
+                        while (true) {
+                            std::cout &#x3C;&#x3C; &#x22;Enter your points (0-&#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; &#x22;): &#x22;; // &#xD3EC;&#xC778;&#xD2B8; &#xC785;&#xB825; &#xC548;&#xB0B4; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                            std::cin &#x3E;&#x3E; my_bid;
+                
+                            if (std::cin.fail() || my_bid &#x3C; 0 || my_bid &#x3E; my_points) {
+                                std::cin.clear(); // &#xC785;&#xB825; &#xC2A4;&#xD2B8;&#xB9BC;&#xC744; &#xCD08;&#xAE30;&#xD654;&#xD558;&#xC5EC; &#xC624;&#xB958; &#xD50C;&#xB798;&#xADF8;&#xB97C; &#xC81C;&#xAC70;
+                                std::cin.ignore(std::numeric_limits&#x3C;std::streamsize&#x3E;::max(), &#x27;\n&#x27;); // &#xC785;&#xB825; &#xBC84;&#xD37C; &#xBE44;&#xC6B0;&#xAE30;
+                                std::cout &#x3C;&#x3C; &#x22;Invalid input. Please enter a number between 0 and &#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; std::endl; // &#xC720;&#xD6A8;&#xD558;&#xC9C0; &#xC54A;&#xC740; &#xC785;&#xB825;&#xC77C; &#xACBD;&#xC6B0; &#xC624;&#xB958; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                            } else {
+                                break;
+                            }
+                        }
+                
+                        // &#xC11C;&#xBC84;&#xB85C; &#xD3EC;&#xC778;&#xD2B8; &#xC81C;&#xC2DC; &#xC804;&#xC1A1; &#xAC01;&#xAC01; &#xD30C;&#xB77C;&#xBBF8;&#xD130;&#xB294; &#xC18C;&#xCF13;, &#xD3EC;&#xC778;&#xD2B8;, &#xD3EC;&#xC778;&#xD2B8; &#xD06C;&#xAE30;, &#xD50C;&#xB798;&#xADF8;
+                        sendto(sock, &#x26;my_bid, sizeof(my_bid), 0, reinterpret_cast&#x3C;const struct sockaddr*&#x3E;(&#x26;serv_addr), sizeof(serv_addr));
+                
+                        // &#xC11C;&#xBC84;&#xB85C;&#xBD80;&#xD130; &#xC0C1;&#xB300;&#xC758; &#xD3EC;&#xC778;&#xD2B8; &#xC218;&#xC2E0; &#xAC01;&#xAC01; &#xD30C;&#xB77C;&#xBBF8;&#xD130;&#xB294; &#xC18C;&#xCF13;, &#xD3EC;&#xC778;&#xD2B8;, &#xD3EC;&#xC778;&#xD2B8; &#xD06C;&#xAE30;, &#xD50C;&#xB798;&#xADF8;
+                        int opp_bid;
+                        socklen_t server_addr_len = sizeof(serv_addr);
+                        recvfrom(sock, &#x26;opp_bid, sizeof(opp_bid), 0, reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;serv_addr), &#x26;server_addr_len);
+                
+                        myhistory[rounds]=my_bid; // &#xB0B4;&#xAC00; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;
+                        opphistory[rounds]=opp_bid; // &#xC0C1;&#xB300;&#xBC29;&#xC774; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;
+                        // &#xD3EC;&#xC778;&#xD2B8; &#xBE44;&#xAD50; &#xD6C4; &#xC2B9;&#xC810; &#xACC4;&#xC0B0; &#xBC0F; &#xCD9C;&#xB825;
+                        if (my_bid &#x3E; opp_bid) {
+                            mywin++;
+                            std::cout &#x3C;&#x3C; &#x22;You win this round!&#x22; &#x3C;&#x3C; std::endl;
+                        } else if (my_bid &#x3C; opp_bid) {
+                            oppwin++;
+                            std::cout &#x3C;&#x3C; &#x22;You lose this round!&#x22; &#x3C;&#x3C; std::endl;
+                        } else {
+                            std::cout &#x3C;&#x3C; &#x22;It&#x27;s a tie!&#x22; &#x3C;&#x3C; std::endl;
+                        }
+                        my_points -= my_bid;
+                        opponent_points -= opp_bid;
+                        
+                
+                        std::cout &#x3C;&#x3C; &#x22;Round &#x22; &#x3C;&#x3C; rounds + 1 &#x3C;&#x3C;&#x22;ended. score &#x22;&#x3C;&#x3C;mywin&#x3C;&#x3C;&#x22;:&#x22;&#x3C;&#x3C;oppwin&#x3C;&#x3C;std::endl; // &#xD604;&#xC7AC; &#xB77C;&#xC6B4;&#xB4DC;&#xC640; &#xC2B9;&#xB9AC; &#xC218; &#xCD9C;&#xB825;
+                        rounds++;
+                        if(abs(mywin-oppwin)&#x3E;7-rounds) // &#xB9CC;&#xC57D; &#xB0B4; &#xC2B9;&#xB9AC; &#xC218;&#xC640; &#xC0C1;&#xB300;&#xBC29; &#xC2B9;&#xB9AC; &#xC218; &#xCC28;&#xC774;&#xAC00; &#xB0A8;&#xC740; &#xB77C;&#xC6B4;&#xB4DC; &#xC218;&#xBCF4;&#xB2E4; &#xD06C;&#xBA74; &#xAC8C;&#xC784; &#xC870;&#xAE30; &#xC885;&#xB8CC;
+                            break;
+                        
+                    }
+                
+                    // &#xAC8C;&#xC784; &#xC885;&#xB8CC; &#xC870;&#xAC74; &#xC2B9;&#xB9AC; &#xC218; &#xBE44;&#xAD50; &#xB9CC;&#xC57D; &#xB0B4; &#xC2B9;&#xB9AC; &#xC218;&#xAC00; &#xB354; &#xB9CE;&#xC73C;&#xBA74; &#xB0B4;&#xAC00; &#xC774;&#xAE30;&#xACE0;, &#xC0C1;&#xB300;&#xBC29; &#xC2B9;&#xB9AC; &#xC218;&#xAC00; &#xB354; &#xB9CE;&#xC73C;&#xBA74; &#xC0C1;&#xB300;&#xBC29;&#xC774; &#xC774;&#xAE30;&#xACE0;, &#xB458; &#xB2E4; &#xAC19;&#xC73C;&#xBA74; &#xD3EC;&#xC778;&#xD2B8; &#xBE44;&#xAD50;
+                    for(int i=0; i&#x3C;rounds; i++){
+                        std::string result;
+                        if(myhistory[i]&#x3E;opphistory[i])
+                            result=&#x22; win&#x22;;
+                        else if(myhistory[i]&#x3C;opphistory[i])
+                            result=&#x22; lose&#x22;;
+                        else
+                            result=&#x22; tie&#x22;;
+                        std::cout &#x3C;&#x3C;myhistory[i]&#x3C;&#x3C;&#x22; : &#x22;&#x3C;&#x3C;opphistory[i]&#x3C;&#x3C;result&#x3C;&#x3C; std::endl;
+                    }
+                    
+                
+                
+                    if (mywin &#x3E; oppwin) {
+                        std::cout &#x3C;&#x3C; &#x22;You win the game!&#x22; &#x3C;&#x3C; std::endl; // &#xB0B4;&#xAC00; &#xC774;&#xAE34; &#xACBD;&#xC6B0; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                    } else if (mywin &#x3C; oppwin) {
+                        std::cout &#x3C;&#x3C; &#x22;You lose the game!&#x22; &#x3C;&#x3C; std::endl; // &#xB0B4;&#xAC00; &#xC84C;&#xC744; &#xACBD;&#xC6B0; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                    } else {
+                        std::cout &#x3C;&#x3C; &#x22;Your points: &#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; &#x22;, Opponent&#x27;s points: &#x22; &#x3C;&#x3C; opponent_points&#x3C;&#x3C; std::endl; // &#xB0B4; &#xD3EC;&#xC778;&#xD2B8;&#xC640; &#xC0C1;&#xB300;&#xBC29; &#xD3EC;&#xC778;&#xD2B8; &#xCD9C;&#xB825;
+                        if(my_points&#x3E;opponent_points)
+                            std::cout &#x3C;&#x3C; &#x22;You win the game!&#x22; &#x3C;&#x3C; std::endl; // &#xD3EC;&#xC778;&#xD2B8;&#xAC00; &#xB354; &#xB192;&#xC740; &#xACBD;&#xC6B0; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                        else if(my_points&#x3C;opponent_points)
+                            std::cout &#x3C;&#x3C; &#x22;You lose the game!&#x22; &#x3C;&#x3C; std::endl; // &#xD3EC;&#xC778;&#xD2B8;&#xAC00; &#xB354; &#xB0AE;&#xC740; &#xACBD;&#xC6B0; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                        else
+                            std::cout &#x3C;&#x3C; &#x22;It&#x27;s a tie!&#x22; &#x3C;&#x3C; std::endl; // &#xD3EC;&#xC778;&#xD2B8;&#xAC00; &#xAC19;&#xC740; &#xACBD;&#xC6B0; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                    }
+                
+                    close(sock); // &#xC18C;&#xCF13; &#xB2EB;&#xAE30;   
+                    return 0;
+                }
+                
+                void error_handling(const std::string &#x26;message) { // &#xC5D0;&#xB7EC; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825; &#xD568;&#xC218;
+                    std::cerr &#x3C;&#x3C; message &#x3C;&#x3C; std::endl;
+                    exit(1);
+                }
+            </code> </pre>
+        </div>
+        <div class="container">
+            <h2>Server code</h2>
+            <pre><code>#include &#x3C;iostream&#x3E;
+                #include &#x3C;string&#x3E;
+                #include &#x3C;cstring&#x3E;
+                #include &#x3C;cstdlib&#x3E;
+                #include &#x3C;unistd.h&#x3E;
+                #include &#x3C;sys/socket.h&#x3E;
+                #include &#x3C;netinet/in.h&#x3E;
+                #include &#x3C;arpa/inet.h&#x3E;
+                #include &#x3C;limits&#x3E; 
+                
+                #define BUF_SIZE 1024
+                
+                void error_handling(const std::string &#x26;message); // &#xC5D0;&#xB7EC; &#xBA54;&#xC2DC;&#xC9C0; &#xD638;&#xC774;&#xC2A4;&#xD305;
+                
+                int main(int argc, char *argv[]) {
+                    int serv_sock;// &#xC11C;&#xBC84; &#xC18C;&#xCF13;
+                    struct sockaddr_in serv_addr, clnt_addr; // &#xC11C;&#xBC84;&#xC640; &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xAD6C;&#xC870;&#xCCB4;
+                    socklen_t clnt_addr_size; // &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xD06C;&#xAE30;
+                
+                    if (argc != 2) { // &#xD3EC;&#xD2B8; &#xBC88;&#xD638; &#xC785;&#xB825;&#xC774; &#xC5C6;&#xB294; &#xACBD;&#xC6B0;
+                        std::cout &#x3C;&#x3C; &#x22;Usage: &#x22; &#x3C;&#x3C; argv[0] &#x3C;&#x3C; &#x22; &#x3C;port&#x3E;\n&#x22;;
+                        exit(1);
+                    }
+                
+                    serv_sock = socket(AF_INET, SOCK_DGRAM, 0); // UDP &#xC18C;&#xCF13; &#xC0DD;&#xC131; &#xD30C;&#xB77C;&#xBBF8;&#xD130; 1&#xC740; IPv4, 2&#xB294; UDP, 3&#xC740; &#xD504;&#xB85C;&#xD1A0;&#xCF5C;
+                    if (serv_sock == -1)
+                        error_handling(&#x22;UDP socket creation error&#x22;);
+                
+                    memset(&#x26;serv_addr, 0, sizeof(serv_addr)); // &#xC11C;&#xBC84; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xAD6C;&#xC870;&#xCCB4; &#xCD08;&#xAE30;&#xD654;
+                    serv_addr.sin_family = AF_INET; // IPv4 &#xC8FC;&#xC18C; &#xCCB4;&#xACC4; &#xC0AC;&#xC6A9;
+                    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); // &#xC11C;&#xBC84; &#xC8FC;&#xC18C; &#xC124;&#xC815; htonl&#xC740; &#xD638;&#xC2A4;&#xD2B8; &#xBC14;&#xC774;&#xD2B8; &#xC21C;&#xC11C;&#xB97C; &#xB124;&#xD2B8;&#xC6CC;&#xD06C; &#xBC14;&#xC774;&#xD2B8; &#xC21C;&#xC11C;&#xB85C; &#xBCC0;&#xD658;
+                    serv_addr.sin_port = htons(std::stoi(argv[1])); // &#xD3EC;&#xD2B8; &#xBC88;&#xD638; &#xC124;&#xC815; htons&#xB294; &#xD638;&#xC2A4;&#xD2B8; &#xBC14;&#xC774;&#xD2B8; &#xC21C;&#xC11C;&#xB97C; &#xB124;&#xD2B8;&#xC6CC;&#xD06C; &#xBC14;&#xC774;&#xD2B8; &#xC21C;&#xC11C;&#xB85C; &#xBCC0;&#xD658;
+                
+                    if (bind(serv_sock, reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;serv_addr), sizeof(serv_addr)) == -1) // &#xC18C;&#xCF13;&#xACFC; &#xC8FC;&#xC18C; &#xC815;&#xBCF4;&#xB97C; &#xBC14;&#xC778;&#xB529; &#xB9CC;&#xC57D; -1&#xC774;&#xBA74; &#xC5D0;&#xB7EC;
+                        error_handling(&#x22;bind() error&#x22;);
+                
+                    clnt_addr_size = sizeof(clnt_addr); // &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xD06C;&#xAE30; &#xC124;&#xC815;
+                
+                    char buffer[BUF_SIZE]; // &#xBC84;&#xD37C; &#xC0DD;&#xC131;
+                    memset(buffer, 0, sizeof(buffer)); // &#xBC84;&#xD37C; &#xCD08;&#xAE30;&#xD654;
+                
+                    // &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8;&#xB85C;&#xBD80;&#xD130; &#xBA54;&#xC2DC;&#xC9C0; &#xC218;&#xC2E0;
+                    recvfrom(serv_sock, buffer, sizeof(buffer) - 1, 0,
+                             reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;clnt_addr), &#x26;clnt_addr_size);
+                
+                    std::cout &#x3C;&#x3C; &#x22;client: &#x22; &#x3C;&#x3C; buffer &#x3C;&#x3C; std::endl; // &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;// &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8;&#xB85C;&#xBD80;&#xD130; hello &#xBA54;&#xC2DC;&#xC9C0; &#xC218;&#xC2E0;
+                
+                    sendto(serv_sock, &#x22;hello&#x22;, strlen(&#x22;hello&#x22;), 0,
+                           reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;clnt_addr), clnt_addr_size); // &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8;&#xC5D0;&#xAC8C; hello &#xBA54;&#xC2DC;&#xC9C0; &#xC1A1;&#xC2E0;
+                    std::cout &#x3C;&#x3C; &#x22;server: hello&#x22;&#x3C;&#x3C; std::endl;
+                
+                    // &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8;&#xB85C;&#xBD80;&#xD130; &#xBA54;&#xC2DC;&#xC9C0; &#xC218;&#xC2E0;
+                    int opp_bid; // &#xC0C1;&#xB300;&#xBC29;&#xC758; &#xBCA0;&#xD305; &#xD3EC;&#xC778;&#xD2B8;
+                    int my_points = 77; // &#xB0B4; &#xD3EC;&#xC778;&#xD2B8;
+                    int opponent_points = 77; // &#xC0C1;&#xB300;&#xBC29; &#xD3EC;&#xC778;&#xD2B8;
+                    int mywin = 0; // &#xB0B4; &#xC2B9;&#xB9AC; &#xC218;
+                    int oppwin = 0; // &#xC0C1;&#xB300;&#xBC29; &#xC2B9;&#xB9AC; &#xC218;
+                    int rounds = 0; // &#xB77C;&#xC6B4;&#xB4DC; &#xC218;
+                    int myhistory[7];//&#xB0B4;&#xAC00; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;
+                    int opphistory[7];//&#xC0C1;&#xB300;&#xBC29;&#xC774; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;    
+                
+                    while (rounds &#x3C; 7) {
+                        if (serv_sock == -1)
+                        error_handling(&#x22;UDP socket creation error&#x22;);
+                        // &#xD604;&#xC7AC; &#xB77C;&#xC6B4;&#xB4DC;&#xC640; &#xC0C1;&#xB300; &#xC810;&#xC218;&#xB294; &#xB300;&#xB7B5;&#xC801;&#xC73C;&#xB85C;&#xB9CC; &#xCD9C;&#xB825;
+                        std::cout &#x3C;&#x3C;&#x22;Round &#x22;&#x3C;&#x3C;rounds+1&#x3C;&#x3C;&#x22;Your points: &#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; &#x22;, Opponent&#x27;s points: &#x22; &#x3C;&#x3C; (opponent_points/13)*13 &#x3C;&#x3C;&#x22;~&#x22;&#x3C;&#x3C; (opponent_points/13)*13 + 12&#x3C;&#x3C; std::endl; // &#xB0B4; &#xD3EC;&#xC778;&#xD2B8;&#xC640; &#xC0C1;&#xB300;&#xBC29; &#xD3EC;&#xC778;&#xD2B8; &#xCD9C;&#xB825;
+                        int my_bid;
+                
+                
+                        // &#xC0AC;&#xC6A9;&#xC790;&#xB85C;&#xBD80;&#xD130; &#xC720;&#xD6A8;&#xD55C; &#xD3EC;&#xC778;&#xD2B8; &#xC785;&#xB825; &#xBC1B;&#xAE30;
+                        while (true) {
+                            std::cout &#x3C;&#x3C; &#x22;Enter your points (0-&#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; &#x22;): &#x22;;
+                            std::cin &#x3E;&#x3E; my_bid;
+                
+                            if (std::cin.fail() || my_bid &#x3C; 0 || my_bid &#x3E; my_points) { // &#xC785;&#xB825;&#xC774; &#xC2E4;&#xD328;&#xD558;&#xAC70;&#xB098; &#xBC94;&#xC704;&#xB97C; &#xBC97;&#xC5B4;&#xB09C; &#xACBD;&#xC6B0;
+                                std::cin.clear(); // &#xC785;&#xB825; &#xC2A4;&#xD2B8;&#xB9BC;&#xC744; &#xCD08;&#xAE30;&#xD654;&#xD558;&#xC5EC; &#xC624;&#xB958; &#xD50C;&#xB798;&#xADF8;&#xB97C; &#xC81C;&#xAC70;
+                                std::cin.ignore(std::numeric_limits&#x3C;std::streamsize&#x3E;::max(), &#x27;\n&#x27;); // &#xC785;&#xB825; &#xBC84;&#xD37C; &#xBE44;&#xC6B0;&#xAE30;
+                                std::cout &#x3C;&#x3C; &#x22;Invalid input. Please enter a number between 0 and &#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; std::endl; // &#xC624;&#xB958; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825;
+                            } else {
+                                break; // &#xC720;&#xD6A8;&#xD55C; &#xC785;&#xB825;&#xC77C; &#xACBD;&#xC6B0; &#xB8E8;&#xD504; &#xD0C8;&#xCD9C;
+                            }
+                        }
+                
+                        // &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8;&#xB85C;&#xBD80;&#xD130; &#xD3EC;&#xC778;&#xD2B8; &#xC218;&#xC2E0;: &#xD30C;&#xB77C;&#xBBF8;&#xD130; 1&#xC740; &#xC18C;&#xCF13;, 2, 3&#xC740; &#xAC01;&#xAC01; &#xC218;&#xC2E0;&#xD560; &#xB370;&#xC774;&#xD130;(&#xC0C1;&#xB300; &#xB77C;&#xC6B4;&#xB4DC; &#xBCA0;&#xD305;)&#xC758; &#xC8FC;&#xC18C;&#xC640; &#xD06C;&#xAE30;, 4&#xB294; &#xC635;&#xC158;, 5&#xB294; &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xC8FC;&#xC18C; &#xC815;&#xBCF4;, 6&#xC740; &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xD06C;&#xAE30;
+                        recvfrom(serv_sock, &#x26;opp_bid, sizeof(opp_bid), 0,
+                                 reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;clnt_addr), &#x26;clnt_addr_size);
+                  
+                        // &#xC11C;&#xBC84;&#xB85C; &#xD3EC;&#xC778;&#xD2B8; &#xC81C;&#xC2DC; &#xC804;&#xC1A1;&#xD30C;&#xB77C;&#xBBF8;&#xD130; 1&#xC740; &#xC18C;&#xCF13;, 2, 3&#xC740; &#xAC01;&#xAC01; &#xC1A1;&#xC2E0;&#xD560; &#xB370;&#xC774;&#xD130;(&#xB0B4; &#xB77C;&#xC6B4;&#xB4DC; &#xBCA0;&#xD305;)&#xC758; &#xC8FC;&#xC18C;&#xC640; &#xD06C;&#xAE30;, 4&#xB294; &#xC635;&#xC158;, 5&#xB294; &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xC8FC;&#xC18C; &#xC815;&#xBCF4;, 6&#xC740; &#xD074;&#xB77C;&#xC774;&#xC5B8;&#xD2B8; &#xC8FC;&#xC18C; &#xC815;&#xBCF4; &#xD06C;&#xAE30;
+                        sendto(serv_sock, &#x26;my_bid, sizeof(my_bid), 0,
+                               reinterpret_cast&#x3C;struct sockaddr*&#x3E;(&#x26;clnt_addr), clnt_addr_size);
+                        myhistory[rounds]=my_bid; // &#xB0B4;&#xAC00; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;
+                        opphistory[rounds]=opp_bid; // &#xC0C1;&#xB300;&#xBC29;&#xC774; &#xB0B8; &#xC810;&#xC218; &#xAE30;&#xB85D;               
+                
+                        // &#xD3EC;&#xC778;&#xD2B8; &#xBE44;&#xAD50; &#xD6C4; &#xC2B9;&#xC810; &#xACC4;&#xC0B0; &#xBC0F; &#xB77C;&#xC6B4;&#xB4DC; &#xCD9C;&#xB825;
+                        if (my_bid &#x3E; opp_bid) {
+                            mywin++;
+                            std::cout &#x3C;&#x3C; &#x22;You win this round!&#x22; &#x3C;&#x3C; std::endl;
+                        } else if (my_bid &#x3C; opp_bid) {
+                            oppwin++;
+                            std::cout &#x3C;&#x3C; &#x22;You lose this round!&#x22; &#x3C;&#x3C; std::endl;
+                        } else {
+                            std::cout &#x3C;&#x3C; &#x22;It&#x27;s a tie!&#x22; &#x3C;&#x3C; std::endl;
+                        }
+                        my_points -= my_bid;
+                        opponent_points -= opp_bid;
+                
+                        // &#xD604;&#xC7AC; &#xB77C;&#xC6B4;&#xB4DC;&#xC640; &#xC2B9;&#xB9AC; &#xC218; &#xCD9C;&#xB825;
+                        std::cout &#x3C;&#x3C; &#x22;Round &#x22; &#x3C;&#x3C; rounds + 1 &#x3C;&#x3C;&#x22;ended. score &#x22;&#x3C;&#x3C;mywin&#x3C;&#x3C;&#x22;:&#x22;&#x3C;&#x3C;oppwin&#x3C;&#x3C;std::endl; // &#xD604;&#xC7AC; &#xB77C;&#xC6B4;&#xB4DC;&#xC640; &#xC2B9;&#xB9AC; &#xC218; &#xCD9C;&#xB825;
+                        rounds++;
+                        //&#xB0A8;&#xC740; &#xB77C;&#xC6B4;&#xB4DC;&#xAC00; &#xC2B9;&#xC810; &#xCC28;&#xC774;&#xBCF4;&#xB2E4; &#xC791;&#xC73C;&#xBA74; &#xAC8C;&#xC784; &#xC870;&#xAE30; &#xC885;&#xB8CC;
+                        if(abs(mywin-oppwin)&#x3E;7-rounds)
+                            break;
+                    }
+                
+                    for(int i=0; i&#x3C;rounds; i++){
+                        std::string result;
+                        if(myhistory[i]&#x3E;opphistory[i])
+                            result=&#x22; win&#x22;;
+                        else if(myhistory[i]&#x3C;opphistory[i])
+                            result=&#x22; lose&#x22;;
+                        else
+                            result=&#x22; tie&#x22;;
+                        std::cout &#x3C;&#x3C;myhistory[i]&#x3C;&#x3C;&#x22; : &#x22;&#x3C;&#x3C;opphistory[i]&#x3C;&#x3C;result&#x3C;&#x3C; std::endl;
+                    }
+                    
+                
+                    // &#xAC8C;&#xC784; &#xC885;&#xB8CC; &#xC870;&#xAC74; &#xD655;&#xC778;: &#xB354; &#xB9CE;&#xC740; &#xB77C;&#xC6B4;&#xB4DC; &#xC774;&#xAE34; &#xCABD;&#xC774; &#xC2B9;&#xB9AC;, &#xB9CC;&#xC57D; &#xB77C;&#xC6B4;&#xB4DC;&#xAC00; &#xAC19;&#xB2E4;&#xBA74; &#xD3EC;&#xC778;&#xD2B8; &#xBE44;&#xAD50;
+                
+                    if (mywin &#x3E; oppwin) {
+                        std::cout &#x3C;&#x3C; &#x22;You win the game!&#x22; &#x3C;&#x3C; std::endl;
+                    } else if (mywin &#x3C; oppwin) {
+                        std::cout &#x3C;&#x3C; &#x22;You lose the game!&#x22; &#x3C;&#x3C; std::endl;
+                    } else {
+                        std::cout &#x3C;&#x3C; &#x22;Your points: &#x22; &#x3C;&#x3C; my_points &#x3C;&#x3C; &#x22;, Opponent&#x27;s points: &#x22; &#x3C;&#x3C; opponent_points&#x3C;&#x3C; std::endl;
+                        if(my_points&#x3E;opponent_points)
+                            std::cout &#x3C;&#x3C; &#x22;You win the game!&#x22; &#x3C;&#x3C; std::endl;
+                        else if(my_points&#x3C;opponent_points)
+                            std::cout &#x3C;&#x3C; &#x22;You lose the game!&#x22; &#x3C;&#x3C; std::endl;
+                        else
+                            std::cout &#x3C;&#x3C; &#x22;It&#x27;s a tie!&#x22; &#x3C;&#x3C; std::endl;
+                    }
+                
+                    close(serv_sock); // &#xC18C;&#xCF13; &#xC5F0;&#xACB0; &#xB04A;&#xAE30;
+                    
+                    return 0;
+                }
+                
+                
+                // &#xC5D0;&#xB7EC; &#xBA54;&#xC2DC;&#xC9C0; &#xCD9C;&#xB825; &#xD6C4; &#xC885;&#xB8CC;
+                void error_handling(const std::string &#x26;message) {
+                    std::cerr &#x3C;&#x3C; message &#x3C;&#x3C; std::endl;
+                    exit(1);
+                }
+                </code></pre>
+        </div>
+    </div>
+</div>
+</body>
+
+</html>

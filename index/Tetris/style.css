@@ -1,0 +1,326 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+ 
+ul{
+	list-style:none;
+}
+
+body{
+	height: 100%;
+	overflow: hidden;
+  background-image: url(../../image/back.jpg);
+  background-size: cover;
+  background-attachment: fixed;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+}
+
+.wrapper{
+  display: grid;
+  grid-template-columns: 150px 300px 150px ;
+  margin: 25px;
+  justify-content:center;  
+}
+
+
+
+.game-text{
+	display: none;
+	justify-content:center;
+	align-items: center;
+	flex-direction: column;
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	background: rgba(0,0,0,0.7);
+	left: 0;
+	top: 0;
+	color: #fff;
+	font-size: 50px;
+
+}
+
+.game-text > button{
+	padding: 0.5rem 1rem;
+	color: #fff;
+	background: salmon;
+	border: none;
+	cursor: pointer;
+
+}
+
+.score{
+	text-align: center;
+	font-size: 36px;
+	margin-bottom: 2rem;
+}
+
+
+.playground > ul {
+	border:1px solid #333;
+	width: 250px;
+	margin: auto;
+
+	/*모든 블럭을 합친 전체 칸의 크기다.*/
+}
+
+.playground > ul > li {
+ 	width: 100%;
+	height: 25px;
+
+	/*세로 한 줄의 크기다*/
+}
+
+.playground > ul > li > ul {
+ 	display: flex;
+  
+}
+
+.playground > ul > li > ul > li {
+	width: 25px;
+	height: 25px;
+	outline: 1px solid #c8b1b1;
+
+  
+	/*테트리스 블럭에서 최종적으로 한 칸이 되는 블럭 단위의 크기를 설정하였다.*/
+} 
+
+.nextbox{
+  width: 125px;
+  height: 75px;
+  /*border: 1px solid #000;
+  background-color: gray;*/
+  align-items: center;
+  text-align : center
+}
+
+.nextbox > ul > li {
+ 	width: 100%;
+	height: 25px;
+  margin-left: 10px;
+}
+
+.nextbox > ul > li > ul {
+ 	display: flex;
+  text-align : center;
+
+}
+
+.nextbox > ul > li > ul > li {
+	width: 25px;
+	height: 25px;
+	/*outline: 1px solid #ccc;*/
+} 
+
+.holdbox{
+  width: 125px;
+  height: 75px;
+  /*border: 1px solid #000;
+  background-color: gray;*/
+  align-items: center;
+  text-align : center
+}
+
+.holdbox > ul > li {
+ 	width: 100%;
+	height: 25px;
+  margin-left: 10px;
+}
+
+.holdbox > ul > li > ul {
+ 	display: flex;
+  text-align : center;
+
+}
+
+.holdbox > ul > li > ul > li {
+	width: 25px;
+	height: 25px;
+	/*outline: 1px solid #ccc;*/
+} 
+
+.tree{
+	background: #7e2a7e;
+}
+.bar{
+	background: #3abbee;
+}
+.square{
+	background: #e2e228;
+}
+.zee{
+	background: #e13737;
+}
+.see{
+	background: #46c346;
+}
+.elLeft{
+	background: #4747ff;
+}
+.elRight{
+	background: orange;
+}
+
+@keyframes wave {
+  50% {
+    opacity: 0;
+    width: 10%;
+  }
+}
+
+@keyframes bomb {
+  50% {
+    opacity: 0;
+    width: 50%;
+  }
+}
+
+.wave {
+  animation-name: wave;
+  animation-duration: 0.5s;
+  animation-delay: 0s;
+  animation-iteration-count: 1;
+  animation-timing-function: linear;
+  animation-direction: alternate;
+  transition: 0.5s;
+}
+
+img {
+    max-width: 100%; /* 이미지의 최대 너비를 화면의 너비로 설정 */
+    height: auto; /* 이미지의 높이를 자동으로 조정하여 가로세로 비율 유지 */
+    display: block; /* 이미지를 블록 요소로 설정하여 인라인 요소와의 간격을 없앰 */
+  }
+
+  table, th, td { border: 1px solid black;
+background-color: rgb(237, 237, 237);
+}
+
+  body {
+    font-family: Arial, sans-serif;
+    margin-right: 20px;
+   
+    background-color: hsl(0, 0%, 91%);
+    color: #333;
+    display: flex;
+}
+header {
+    background-color: rgb(24, 133, 68);
+    padding: 10px;
+    margin-right: 10px;
+    flex: 0 0 250px; /* navigation의 고정된 너비 */
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+nav ul li {
+    position: relative;
+    margin-bottom: 10px;
+}
+nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    padding: 10px;
+    display: block;
+    transition: background-color 0.3s ease;
+}
+nav ul li a:hover {
+    background-color: #59c37c;
+}
+nav ul ul {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 100%; /* 메뉴가 오른쪽으로 이동하도록 */
+    background-color: rgb(24, 133, 68);
+    padding: 0;
+    border-radius: 0 0 8px 8px;
+}
+nav ul ul li {
+    width: 200px;
+    border-bottom: 1px solid #fff;
+}
+nav ul ul li:last-child {
+    border-bottom: none;
+}
+nav ul li:hover > ul {
+    display: block;
+}
+main {
+    flex: 1; /* 내용이 차지할 공간을 남은 공간으로 설정 */
+    padding: 20px;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    grid-gap: 20px;
+    padding: 20px;
+    overflow: auto;
+    align-items: start;
+    border: 2px solid #000; /* 윤곽선 추가 */
+    border-radius: 8px; /* 윤곽선의 둥근 모서리를 추가할 수도 있습니다. */
+}
+
+@media screen and (max-width: 768px) {
+    header {
+        display: none;
+        /* 좁아졌을 때 네비게이션 최소 너비 변수 사용 */
+    }
+    .container {
+        grid-template-columns: 1fr; /* 한 개의 열로 변경 */
+    }
+    table {
+        width: 100%; /* 화면이 좁아질 경우 테이블의 너비를 100%로 설정하여 가로 스크롤이 나타나게 함 */
+    }
+}
+
+
+.quote {
+    font-style: italic;
+    color: #666;
+}
+
+
+
+pre {
+    background-color: #6f6e6e; /* 배경색 설정 */
+    padding: 10px; /* 내부 여백 설정 */
+    border-radius: 5px; /* 둥근 테두리 설정 */
+    overflow-x: auto; /* 가로 스크롤바 추가 */
+}
+
+code {
+    font-family: Consolas, Monaco, 'Andale Mono', monospace; /* 고정폭 글꼴 설정 */
+    color: #d2e0a9; /* 글자색 설정 */
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .wrapper {
+      padding: 10px;
+  }
+
+  .game-text .finalscore {
+      font-size: 1.5em;
+  }
+
+  .game-text button {
+      font-size: 0.9em;
+  }
+
+  .wrapper .score {
+      font-size: 1.2em;
+  }
+
+  .holdbox, .nextbox {
+      font-size: 1em;
+  }
+
+
+}
